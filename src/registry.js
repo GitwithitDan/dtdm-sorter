@@ -25,7 +25,8 @@ async function getRegistryFile() {
     null,
     rootId,
     REGISTRY_FILENAME,
-    JSON.stringify({ instances: [] }, null, 2)
+    JSON.stringify({ instances: [] }, null, 2),
+    'application/json'
   );
   cachedRegistryFileId = created.id;
   return { id: created.id, parentId: rootId };
@@ -43,7 +44,7 @@ async function loadRegistry() {
 
 async function saveRegistry(registry) {
   const { id, parentId } = await getRegistryFile();
-  await drive.writeTextFile(id, parentId, REGISTRY_FILENAME, JSON.stringify(registry, null, 2));
+  await drive.writeTextFile(id, parentId, REGISTRY_FILENAME, JSON.stringify(registry, null, 2), 'application/json');
 }
 
 async function upsertInstance(instance) {
