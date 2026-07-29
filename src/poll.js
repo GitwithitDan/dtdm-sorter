@@ -3,6 +3,8 @@ const registryStore = require('./registry');
 const extractor = require('./extractor');
 const classifier = require('./classifier');
 const router = require('./router');
+const alerts = require('./alerts');
+const { SorterApiError } = require('./anthropicClient');
 
 const DEFAULT_THRESHOLD = 0.75;
 const DISCOVER_BATCH_SIZE = 25;
@@ -105,17 +107,36 @@ async function processInstance(instance) {
 }
 
 async function runPollCycle() {
+  if (await alerts.isPaused()) {
+    return [{
+      status: 'paused',
+      message: `Sorter is paused. Delete "${alerts.ALERT_FILENAME}" from the Sorter root folder in Drive once the underlying API issue is resolved.`,
+    }];
+  }
+
   const registry = await registryStore.loadRegistry();
   const results = [];
+
   for (const instance of registry.instances) {
     if (instance.status !== 'active') continue;
     try {
       const result = await processInstance(instance);
       results.push(result);
     } catch (err) {
+      if (err instanceof SorterApiError) {
+        await alerts.writeAlert(err.category, err.message);
+        results.push({
+          instanceId: instance.id,
+          name: instance.name,
+          error: err.message,
+          apiPaused: true,
+        });
+        break; // system-wide issue -- stop this cycle, don't hit the same broken key again
+      }
       results.push({ instanceId: instance.id, name: instance.name, error: err.message });
     }
   }
+
   return results;
 }
 
