@@ -5,6 +5,7 @@ const cron = require('node-cron');
 const instancesRoute = require('./routes/instances');
 const setupRoute = require('./routes/setup');
 const { runPollCycle } = require('./poll');
+const alerts = require('./alerts');
 
 const app = express();
 app.use(express.json());
@@ -22,7 +23,14 @@ app.post('/poll/run', async (req, res) => {
   }
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', async (req, res) => {
+  try {
+    const paused = await alerts.isPaused();
+    res.json({ status: 'ok', paused });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
