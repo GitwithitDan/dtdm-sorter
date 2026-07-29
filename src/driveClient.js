@@ -109,9 +109,10 @@ async function readTextFile(fileId) {
   return res.data;
 }
 
-async function writeTextFile(fileId, parentId, name, content) {
+// mimeType defaults to 'text/plain'; pass 'application/json' explicitly for JSON payloads.
+async function writeTextFile(fileId, parentId, name, content, mimeType) {
   const drive = getDrive();
-  const media = { mimeType: 'application/json', body: content };
+  const media = { mimeType: mimeType || 'text/plain', body: content };
   if (fileId) {
     const res = await drive.files.update({ fileId, media, fields: 'id' });
     return res.data;
