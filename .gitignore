@@ -1,19 +1,20 @@
-{
-  "name": "dtdm-sorter",
-  "version": "1.0.0",
-  "description": "The Sorter -- inbox to instructions to outbox engine",
-  "main": "src/server.js",
-  "scripts": {
-    "start": "node src/server.js"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "googleapis": "^144.0.0",
-    "mammoth": "^1.8.0",
-    "node-cron": "^3.0.3",
-    "pdf-parse": "^1.1.1"
-  }
-}
+**env.example**
+
+```
+GOOGLE_CLIENT_ID=your-oauth-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-oauth-client-secret
+GOOGLE_REFRESH_TOKEN=your-refresh-token-for-dan-at-dtdm.us
+ANTHROPIC_API_KEY=sk-ant-your-key
+CLAUDE_MODEL=claude-sonnet-5
+SORTER_ROOT_FOLDER_NAME=Sorter
+PORT=3000
+POLL_INTERVAL_CRON=*/5 * * * *
+```
+
+**gitignore**
+
+```
+node_modules/
+.env
+*.log
+```
