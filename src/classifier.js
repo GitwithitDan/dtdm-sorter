@@ -1,10 +1,7 @@
-const Anthropic = require('@anthropic-ai/sdk');
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-5';
+const { callMessages, MODEL } = require('./anthropicClient');
 
 async function callClaudeJson(systemPrompt, userPrompt) {
-  const response = await client.messages.create({
+  const response = await callMessages({
     model: MODEL,
     max_tokens: 1024,
     system: systemPrompt,
