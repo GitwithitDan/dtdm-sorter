@@ -1,14 +1,13 @@
 const express = require('express');
 const path = require('path');
 const { randomUUID } = require('crypto');
-const Anthropic = require('@anthropic-ai/sdk');
+const { callMessages, MODEL, SorterApiError } = require('../anthropicClient');
 const drive = require('../driveClient');
 const registryStore = require('../registry');
 const routerLib = require('../router');
+const alerts = require('../alerts');
 
 const router = express.Router();
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-5';
 
 router.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', '..', 'public', 'setup.html'));
@@ -77,15 +76,21 @@ async function executeCreateInstance(input) {
 }
 
 router.post('/chat', async (req, res) => {
-  try {
-    const { message } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: 'message is required' });
-    }
+  const { message } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'message is required' });
+  }
 
+  if (await alerts.isPaused()) {
+    return res.json({
+      reply: `Sorter is currently paused due to an API issue. Check "${alerts.ALERT_FILENAME}" in the Sorter root folder in Drive for details -- delete it once resolved to resume.`,
+    });
+  }
+
+  try {
     const system = `You set up new Sorter instances from a single user instruction. Always resolve the instruction into exactly one call to create_sorting_instance -- never ask a clarifying question, never wait for confirmation. Decide the mode yourself: "filter" for a single yes/no criterion, "fixed_category" when the user names specific categories, "discover_then_sort" when no categories are given or implied -- in that case pass an empty categories array. Pick a short, clear instance name if the user didn't give one.`;
 
-    const response = await client.messages.create({
+    const response = await callMessages({
       model: MODEL,
       max_tokens: 1024,
       system,
@@ -107,6 +112,12 @@ router.post('/chat', async (req, res) => {
       instance: result.instance,
     });
   } catch (err) {
+    if (err instanceof SorterApiError) {
+      await alerts.writeAlert(err.category, err.message);
+      return res.json({
+        reply: `Couldn't create the instance -- ${err.message} A details file has been written to the Sorter root folder in Drive; sorting is paused until it's resolved.`,
+      });
+    }
     res.status(500).json({ error: err.message });
   }
 });
